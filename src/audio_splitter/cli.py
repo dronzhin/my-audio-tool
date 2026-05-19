@@ -1,6 +1,6 @@
 import click
 from pathlib import Path
-from src.audio_splitter.splitter import AudioSplitter
+from audio_splitter.splitter import AudioSplitter
 
 
 @click.command()

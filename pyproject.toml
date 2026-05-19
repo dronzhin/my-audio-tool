@@ -5,12 +5,10 @@ description = "Fast CLI audio splitter with duration, timestamp, and silence det
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-authors = [{name = "Your Name", email = "your@email.com"}]
+authors = [{name = "Dmitry Ronzhin", email = "mrakrus25@mail.ru"}]
 dependencies = [
     "click>=8.1.0",
     "pydub>=0.25.1",
-    "requests>=2.34.2",
-    "tqdm>=4.67.3",
 ]
 
 [project.scripts]
