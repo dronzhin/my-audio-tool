@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple, Optional
 from pydub import AudioSegment
-from pydub.silence import split_on_silence
+from pydub.silence import split_on_silence, detect_silence
 
 
 class AudioSplitter:
@@ -19,10 +19,60 @@ class AudioSplitter:
         self.duration_sec = len(self.audio) / 1000.0
         self.output_format = output_format or self.input_path.suffix.lstrip('.') or 'mp3'
 
-    def split_by_duration(self, chunk_sec: float = 300, prefix: str = "chunk") -> List[Path]:
-        chunk_ms = int(chunk_sec * 1000)
-        chunks = [self.audio[i:i + chunk_ms] for i in range(0, len(self.audio), chunk_ms)]
+    def split_by_duration(self, chunk_sec: float = 300, prefix: str = "chunk",
+                          smart: bool = True, tolerance_sec: float = 15.0,
+                          min_silence_ms: int = 500, silence_thresh_db: int = -40) -> List[Path]:
+        """
+        Нарезка по длительности с опциональным поиском тишины рядом с целевой точкой.
+        smart=True → ищет паузу в окне ±tolerance_sec, чтобы не резать слова.
+        smart=False → жёсткая нарезка ровно каждые chunk_sec.
+        """
+        if not smart:
+            # Оригинальное поведение для обратной совместимости
+            chunk_ms = int(chunk_sec * 1000)
+            chunks = [self.audio[i:i + chunk_ms] for i in range(0, len(self.audio), chunk_ms)]
+            return self._export_chunks(chunks, prefix)
+
+        # 1. Формируем целевые точки нарезки
+        targets = [i * chunk_sec for i in range(1, int(self.duration_sec / chunk_sec) + 1)]
+        actual_splits = [0.0]
+
+        # 2. Для каждой цели ищем ближайшую тишину в окне допуска
+        for target in targets:
+            win_start = max(actual_splits[-1], target - tolerance_sec)
+            win_end = min(self.duration_sec, target + tolerance_sec)
+
+            window_audio = self.audio[int(win_start * 1000):int(win_end * 1000)]
+            best_split = self._find_silence_near_target(
+                window_audio, win_start, target, min_silence_ms, silence_thresh_db
+            )
+            # Защита от нулевых или пересекающихся чанков
+            best_split = max(best_split, actual_splits[-1] + 1.0)
+            actual_splits.append(best_split)
+
+        actual_splits.append(self.duration_sec)
+
+        # 3. Формируем чанки по найденным точкам
+        chunks = [
+            self.audio[int(actual_splits[i] * 1000):int(actual_splits[i + 1] * 1000)]
+            for i in range(len(actual_splits) - 1)
+        ]
         return self._export_chunks(chunks, prefix)
+
+    def _find_silence_near_target(self, window_audio: AudioSegment, window_start_sec: float,
+                                  target_sec: float, min_silence_ms: int, thresh_db: int) -> float:
+        """Возвращает секунду разреза: ближайшую середину паузы или target_sec, если тишины нет."""
+        silences = detect_silence(window_audio, min_silence_len=min_silence_ms, silence_thresh=thresh_db)
+        if not silences:
+            return target_sec
+
+        # Переводим цель в локальные миллисекунды окна
+        target_rel_ms = (target_sec - window_start_sec) * 1000
+
+        # Находим паузу, чья середина ближе всего к цели
+        best_start, best_end = min(silences, key=lambda s: abs((s[0] + s[1]) / 2 - target_rel_ms))
+        mid_ms = (best_start + best_end) / 2
+        return window_start_sec + (mid_ms / 1000.0)
 
     def split_by_timestamps(self, timestamps: List[Tuple[float, float]], prefix: str = "part") -> List[Path]:
         chunks = []
