@@ -44,13 +44,13 @@ winget install FFmpeg
 uv tool install .
 
 # Или напрямую из репозитория (после публикации)
-uv tool install git+https://github.com/your-username/audio-splitter.git
+uv tool install git+https://github.com/dronzhin/my-audio-tool
 ```
 После установки команда `audio-splitter` доступна из любого терминала.
 
 ### Для разработки
 ```bash
-git clone <repo-url>
+git clone https://github.com/dronzhin/my-audio-tool
 cd audio-splitter
 uv sync
 uv run audio-splitter --help
