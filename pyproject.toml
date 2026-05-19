@@ -1,0 +1,40 @@
+[project]
+name = "audio-splitter"
+version = "0.1.0"
+description = "Fast CLI audio splitter with duration, timestamp, and silence detection modes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Your Name", email = "your@email.com"}]
+dependencies = [
+    "click>=8.1.0",
+    "pydub>=0.25.1",
+]
+
+[project.scripts]
+audio-splitter = "audio_splitter.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "ruff>=0.4.0",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
