@@ -9,6 +9,8 @@ authors = [{name = "Your Name", email = "your@email.com"}]
 dependencies = [
     "click>=8.1.0",
     "pydub>=0.25.1",
+    "requests>=2.34.2",
+    "tqdm>=4.67.3",
 ]
 
 [project.scripts]
@@ -18,8 +20,8 @@ audio-splitter = "audio_splitter.cli:cli"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.4.0",
