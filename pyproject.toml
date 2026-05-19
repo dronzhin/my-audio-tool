@@ -9,6 +9,7 @@ authors = [{name = "Dmitry Ronzhin", email = "mrakrus25@mail.ru"}]
 dependencies = [
     "click>=8.1.0",
     "pydub>=0.25.1",
+    "tqdm>=4.67.3",
 ]
 
 [project.scripts]

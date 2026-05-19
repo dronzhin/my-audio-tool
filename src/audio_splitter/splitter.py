@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 from pydub import AudioSegment
 from pydub.silence import split_on_silence, detect_silence
+from tqdm import tqdm
 
 
 class AudioSplitter:
@@ -96,7 +97,11 @@ class AudioSplitter:
 
     def _export_chunks(self, chunks: List[AudioSegment], prefix: str) -> List[Path]:
         exported = []
-        for i, chunk in enumerate(chunks, start=1):
+        # tqdm автоматически отслеживает время, ETA и скорость
+        for i, chunk in enumerate(
+            tqdm(chunks, desc=f"⏳ Exporting {prefix}", unit="chunk", leave=True),
+            start=1
+        ):
             out_path = self.output_dir / f"{prefix}_{i:03d}.{self.output_format}"
             chunk.export(out_path, format=self.output_format)
             exported.append(out_path)
