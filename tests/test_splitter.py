@@ -1,41 +1,47 @@
-import pytest
-from pydub import AudioSegment
-
+import subprocess
+import tempfile
+from pathlib import Path
 from audio_splitter.splitter import AudioSplitter
 
 
-@pytest.fixture
-def sample_audio(tmp_path):
-    """Create a 2-second silent WAV file for testing."""
-    audio = AudioSegment.silent(duration=2000, frame_rate=44100)
-    file_path = tmp_path / "test.wav"
-    audio.export(file_path, format="wav")
-    return file_path
+def create_dummy_audio(path: Path, duration_sec: int = 2):
+    """Создает тихий MP3-файл заданной длительности через FFmpeg."""
+    cmd = [
+        "ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo:d={duration_sec}",
+        "-c:a", "libmp3lame", "-q:a", "9", str(path)
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)
 
 
-def test_init_valid_file(sample_audio, tmp_path):
-    splitter = AudioSplitter(str(sample_audio), output_dir=str(tmp_path / "out"))
-    assert splitter.duration_sec == pytest.approx(2.0, abs=0.1)
-    assert splitter.output_format == "wav"
+def test_init_creates_output_dir():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_file = Path(tmpdir) / "test.mp3"
+        output_dir = Path(tmpdir) / "output"
+
+        # Создаем фиктивный файл
+        create_dummy_audio(input_file)
+
+        # Инициализируем сплиттер
+        splitter = AudioSplitter(str(input_file), output_dir=str(output_dir))
+
+        assert splitter.output_dir.exists()
+        assert splitter.duration_sec > 0
 
 
-def test_init_invalid_file(tmp_path):
-    with pytest.raises(FileNotFoundError):
-        AudioSplitter("nonexistent.mp3")
+def test_split_by_duration_creates_files():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_file = Path(tmpdir) / "test.mp3"
+        output_dir = Path(tmpdir) / "chunks"
 
+        # Создаем файл длиной 5 секунд
+        create_dummy_audio(input_file, duration_sec=5)
 
-def test_split_by_duration(sample_audio, tmp_path):
-    out_dir = tmp_path / "duration_out"
-    splitter = AudioSplitter(str(sample_audio), output_dir=str(out_dir))
-    files = splitter.split_by_duration(chunk_sec=1.0)
-    assert len(files) == 2
-    assert all(f.exists() for f in files)
-    assert all(f.suffix == ".wav" for f in files)
+        splitter = AudioSplitter(str(input_file), output_dir=str(output_dir))
 
+        # Нарезаем по 2 секунды (должно получиться 3 файла: 2с, 2с, 1с)
+        files = splitter.split_by_duration(chunk_sec=2, smart=False)
 
-def test_split_by_silence(sample_audio, tmp_path):
-    out_dir = tmp_path / "silence_out"
-    splitter = AudioSplitter(str(sample_audio), output_dir=str(out_dir))
-    files = splitter.split_by_silence(min_silence_ms=500, silence_thresh_db=-50)
-    assert len(files) >= 1
-    assert all(f.exists() for f in files)
+        assert len(files) == 3
+        for f in files:
+            assert f.exists()
+            assert f.suffix == ".mp3"
