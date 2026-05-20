@@ -1,14 +1,14 @@
-import subprocess
 import re
+import subprocess
 from pathlib import Path
-from typing import List, Tuple, Optional
+
 from tqdm import tqdm
 
 
 class AudioSplitter:
     """FFmpeg-native audio splitter. Streams data, uses ~20MB RAM regardless of file size."""
 
-    def __init__(self, input_path: str, output_dir: str = "output_chunks", output_format: Optional[str] = None):
+    def __init__(self, input_path: str, output_dir: str = "output_chunks", output_format: str | None = None):
         self.input_path = Path(input_path)
         if not self.input_path.exists():
             raise FileNotFoundError(f"Input file not found: {input_path}")
@@ -30,7 +30,7 @@ class AudioSplitter:
         res = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return float(res.stdout.strip())
 
-    def _detect_silences(self, min_silence_sec: float, thresh_db: int) -> List[Tuple[float, float]]:
+    def _detect_silences(self, min_silence_sec: float, thresh_db: int) -> list[tuple[float, float]]:
         cmd = [
             "ffmpeg", "-i", str(self.input_path),
             "-af", f"silencedetect=noise={thresh_db}dB:d={min_silence_sec}",
@@ -46,7 +46,7 @@ class AudioSplitter:
             silences.append((s, e))
         return silences
 
-    def _find_best_split(self, target: float, tolerance: float, silences: List[Tuple[float, float]]) -> float:
+    def _find_best_split(self, target: float, tolerance: float, silences: list[tuple[float, float]]) -> float:
         win_start, win_end = target - tolerance, target + tolerance
         candidates = [(s, e) for s, e in silences if s < win_end and e > win_start]
         if not candidates:
@@ -70,7 +70,7 @@ class AudioSplitter:
 
     def split_by_duration(self, chunk_sec: float = 900, prefix: str = "chunk",
                           smart: bool = True, tolerance_sec: float = 15.0,
-                          min_silence_ms: int = 500, silence_thresh_db: int = -40) -> List[Path]:
+                          min_silence_ms: int = 500, silence_thresh_db: int = -40) -> list[Path]:
         exported = []
         targets = [i * chunk_sec for i in range(1, int(self.duration_sec / chunk_sec) + 1)]
         actual_splits = [0.0]
@@ -98,7 +98,7 @@ class AudioSplitter:
 
         return exported
 
-    def split_by_timestamps(self, timestamps: List[Tuple[float, float]], prefix: str = "part") -> List[Path]:
+    def split_by_timestamps(self, timestamps: list[tuple[float, float]], prefix: str = "part") -> list[Path]:
         exported = []
         for i, (start, end) in enumerate(tqdm(timestamps, desc=f"⏳ Exporting {prefix}", unit="chunk"), start=1):
             if start < 0 or end > self.duration_sec or start >= end:
@@ -109,7 +109,7 @@ class AudioSplitter:
         return exported
 
     def split_by_silence(self, min_silence_ms: int = 1000, silence_thresh_db: int = -40,
-                         keep_silence_ms: int = 500, prefix: str = "silence") -> List[Path]:
+                         keep_silence_ms: int = 500, prefix: str = "silence") -> list[Path]:
         silences = self._detect_silences(min_silence_ms / 1000, silence_thresh_db)
         if not silences:
             out_path = self.output_dir / f"{prefix}_001.{self.output_format}"

@@ -1,7 +1,10 @@
-import click
-from pathlib import Path
-from audio_splitter.splitter import AudioSplitter
 import time
+from pathlib import Path
+
+import click
+
+from audio_splitter.splitter import AudioSplitter
+
 
 @click.command()
 @click.argument("input_file", type=click.Path(exists=True, dir_okay=False))
@@ -52,9 +55,9 @@ def cli(input_file, mode, out, chunk, min_silence, thresh, out_format, smart, to
         click.echo(f"⏱️ Total time: {elapsed:.2f}s")
     except KeyboardInterrupt:
         click.echo("\n⛔ Interrupted by user.")
-        raise SystemExit(130)
+        raise SystemExit(130) from None
     except Exception as e:
-        raise click.ClickException(str(e))
+        raise click.ClickException(str(e)) from e
 
 if __name__ == "__main__":
     cli()

@@ -1,5 +1,6 @@
 import pytest
 from pydub import AudioSegment
+
 from audio_splitter.splitter import AudioSplitter
 
 
