@@ -1,14 +1,24 @@
 import subprocess
 import tempfile
 from pathlib import Path
+
 from audio_splitter.splitter import AudioSplitter
 
 
 def create_dummy_audio(path: Path, duration_sec: int = 2):
     """Создает тихий MP3-файл заданной длительности через FFmpeg."""
     cmd = [
-        "ffmpeg", "-y", "-f", "lavfi", "-i", f"anullsrc=r=44100:cl=stereo:d={duration_sec}",
-        "-c:a", "libmp3lame", "-q:a", "9", str(path)
+        "ffmpeg",
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        f"anullsrc=r=44100:cl=stereo:d={duration_sec}",
+        "-c:a",
+        "libmp3lame",
+        "-q:a",
+        "9",
+        str(path),
     ]
     subprocess.run(cmd, check=True, capture_output=True)
 
